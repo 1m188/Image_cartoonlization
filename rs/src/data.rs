@@ -6,6 +6,7 @@
 //! 索引公式: `(y * width + x) * channels + c`
 
 /// 图像数据容器，像素值域为 [0.0, 1.0]。
+#[derive(Clone)]
 pub struct ImageData {
     /// 图像宽度（像素）
     pub width: usize,
@@ -32,11 +33,16 @@ impl ImageData {
     /// 计算 (y, x, c) 像素在扁平数组中的索引。
     /// 行优先，通道交错排列（RGBRGB...）。
     pub fn index(&self, y: usize, x: usize, c: usize) -> usize {
+        debug_assert!(
+            y < self.height && x < self.width && c < self.channels,
+            "index out of bounds: ({},{},{}) for image {}x{}x{}",
+            y, x, c, self.width, self.height, self.channels
+        );
         (y * self.width + x) * self.channels + c
     }
 
     /// 获取指定像素指定通道的值。
-    /// 越界时由 `Vec` 下标检查触发 panic。
+    /// 越界时 `debug_assert` 会在 debug 模式下 panic。
     pub fn get(&self, y: usize, x: usize, c: usize) -> f64 {
         self.data[self.index(y, x, c)]
     }
@@ -50,6 +56,14 @@ impl ImageData {
     /// 返回 (y, x) 像素第一个通道在底层数组中的偏移量。
     /// 可用于批量读写同一像素的三个通道，避免重复计算索引。
     pub fn pixel_offset(&self, y: usize, x: usize) -> usize {
+        debug_assert!(
+            y < self.height && x < self.width,
+            "pixel_offset out of bounds: ({},{}) for image {}x{}",
+            y,
+            x,
+            self.width,
+            self.height
+        );
         (y * self.width + x) * self.channels
     }
 }

@@ -65,6 +65,7 @@ fn clamp01(v: f64) -> f64 {
 /// 转换链: sRGB → 线性 RGB → CIE XYZ (D65) → CIELab
 /// 输出 L 通道范围约为 [0, 100]，a* 和 b* 无严格边界。
 pub fn rgb_to_lab(img: &ImageData) -> ImageData {
+    assert_eq!(img.channels, 3, "rgb_to_lab 要求 3 通道 RGB 输入");
     let height = img.height;
     let width = img.width;
     let mut data = vec![0.0f64; width * height * 3];
@@ -105,6 +106,7 @@ pub fn rgb_to_lab(img: &ImageData) -> ImageData {
 /// 转换链: CIELab → CIE XYZ → 线性 RGB → sRGB
 /// 变换中线性 RGB 负值或超出 [0,1] 的值会被钳制。
 pub fn lab_to_rgb(img: &ImageData) -> ImageData {
+    assert_eq!(img.channels, 3, "lab_to_rgb 要求 3 通道 Lab 输入");
     let height = img.height;
     let width = img.width;
     let mut data = vec![0.0f64; width * height * 3];
@@ -149,6 +151,7 @@ pub fn lab_to_rgb(img: &ImageData) -> ImageData {
 /// 使用 ITU-R BT.601 亮度系数:
 /// `gray = 0.299*R + 0.587*G + 0.114*B`
 pub fn rgb_to_gray(img: &ImageData) -> ImageData {
+    assert_eq!(img.channels, 3, "rgb_to_gray 要求 3 通道 RGB 输入");
     let height = img.height;
     let width = img.width;
     let mut data = vec![0.0f64; width * height];

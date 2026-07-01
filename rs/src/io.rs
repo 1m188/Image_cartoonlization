@@ -56,11 +56,24 @@ pub fn load_image(path: &Path) -> Result<ImageData, String> {
 ///
 /// 像素值从 [0,1] 缩放到 [0,255] 时做四舍五入后钳制。
 pub fn save_image(path: &Path, img: &ImageData) -> Result<(), String> {
+    if img.channels < 3 {
+        return Err(format!(
+            "无法保存: 需要 3 通道 RGB 数据，但只有 {} 通道",
+            img.channels
+        ));
+    }
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
+
+    if ext != "jpg" && ext != "jpeg" && ext != "png" {
+        return Err(format!(
+            "不支持的输出格式: .{} (仅支持 .jpg, .jpeg, .png)",
+            ext
+        ));
+    }
 
     let mut out_img = image::RgbImage::new(img.width as u32, img.height as u32);
     for y in 0..img.height {
@@ -91,7 +104,7 @@ pub fn save_image(path: &Path, img: &ImageData) -> Result<(), String> {
                 .save(path)
                 .map_err(|e| format!("PNG 保存失败: {}", e))?;
         }
-        _ => return Err(format!("不支持的输出格式: .{}", ext)),
+        _ => unreachable!(),
     }
 
     Ok(())
@@ -133,6 +146,7 @@ mod tests {
         let tmp = PathBuf::from("/tmp/test_roundtrip.png");
         save_image(&tmp, &img).expect("保存 PNG");
         let reloaded = load_image(&tmp).expect("重新加载 PNG");
+        let _ = std::fs::remove_file(&tmp);
         assert_eq!(reloaded.width, img.width);
         assert_eq!(reloaded.height, img.height);
         // PNG 是无损的，像素应几乎一致
@@ -162,6 +176,7 @@ mod tests {
         save_image(&tmp, &img).expect("保存 JPEG");
         // 验证可以重新加载
         let reloaded = load_image(&tmp).expect("重新加载 JPEG");
+        let _ = std::fs::remove_file(&tmp);
         assert_eq!(reloaded.width, 4);
         assert_eq!(reloaded.height, 4);
     }
@@ -170,6 +185,13 @@ mod tests {
     fn test_save_unsupported_extension_errors() {
         let img = ImageData::new(2, 2, 3);
         let result = save_image(&PathBuf::from("/tmp/out.bmp"), &img);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_save_grayscale_rejected() {
+        let img = ImageData::new(2, 2, 1);
+        let result = save_image(&PathBuf::from("/tmp/out.png"), &img);
         assert!(result.is_err());
     }
 }

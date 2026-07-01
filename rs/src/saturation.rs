@@ -14,7 +14,12 @@ use crate::data::ImageData;
 ///
 /// 对每个像素先计算 BT.601 灰度值，然后在灰度与原始色之间做线性插值。
 /// 结果自动钳制到 [0.0, 1.0]。
+///
+/// # Panics
+/// 若输入非 3 通道或 scalar 为非法值会 panic。
 pub fn adjust_saturation(img: &ImageData, scalar: f64) -> ImageData {
+    assert_eq!(img.channels, 3, "adjust_saturation 要求 3 通道 RGB 输入");
+    assert!(scalar.is_finite(), "scalar 必须是有限值");
     let height = img.height;
     let width = img.width;
     let mut data = vec![0.0f64; width * height * 3];
@@ -129,7 +134,7 @@ mod tests {
             for x in 0..2 {
                 for c in 0..3 {
                     let v = result.get(y, x, c);
-                    assert!(v >= 0.0 && v <= 1.0, "值 {} 超出范围", v);
+                    assert!((0.0..=1.0).contains(&v), "值 {} 超出范围", v);
                 }
             }
         }

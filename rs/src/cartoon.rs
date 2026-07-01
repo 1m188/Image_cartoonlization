@@ -54,8 +54,8 @@ pub struct StepResult {
 /// 处理顺序:
 /// 1. 饱和度调整
 /// 2. 第一次双边滤波
-/// 3. 对第一次滤波结果做灰度化 + Sobel 边缘检测
-/// 4. 额外的双边滤波迭代（若 loop_num > 1）
+/// 3. 额外的双边滤波迭代（若 loop_num > 1）
+/// 4. 对最终滤波结果做灰度化 + Sobel 边缘检测
 /// 5. 边缘描边叠加（边缘像素 → 黑色）
 /// 6. 最终钳制到 [0,1]
 ///
@@ -85,7 +85,21 @@ pub fn cartoonize(img: &ImageData, p: &Params) -> Result<(ImageData, Vec<StepRes
         ),
     });
 
-    // 步骤 3: 边缘检测（基于第一次滤波结果的灰度图）
+    // 步骤 3: 额外的双边滤波迭代（若 loop_num > 1）
+    for i in 2..=p.loop_num {
+        let t = Instant::now();
+        img = bilateral::bilateral_filter(&img, p.radius, p.sigma_d, p.sigma_r);
+        steps.push(StepResult {
+            name: format!("bilateral #{}", i),
+            duration: t.elapsed(),
+            detail: format!(
+                "sigma_d={:.2} sigma_r={:.2} radius={}",
+                p.sigma_d, p.sigma_r, p.radius
+            ),
+        });
+    }
+
+    // 步骤 4: 边缘检测（基于最终滤波结果的灰度图）
     let t2 = Instant::now();
     let gray = lab::rgb_to_gray(&img);
     let edge_mask = edge::detect_edges(&gray, p.edge_thresh);
@@ -109,20 +123,6 @@ pub fn cartoonize(img: &ImageData, p: &Params) -> Result<(ImageData, Vec<StepRes
             p.edge_thresh, edge_pct
         ),
     });
-
-    // 步骤 4: 额外的双边滤波迭代
-    for i in 2..=p.loop_num {
-        let t = Instant::now();
-        img = bilateral::bilateral_filter(&img, p.radius, p.sigma_d, p.sigma_r);
-        steps.push(StepResult {
-            name: format!("bilateral #{}", i),
-            duration: t.elapsed(),
-            detail: format!(
-                "sigma_d={:.2} sigma_r={:.2} radius={}",
-                p.sigma_d, p.sigma_r, p.radius
-            ),
-        });
-    }
 
     // 步骤 5: 边缘叠加
     let t4 = Instant::now();

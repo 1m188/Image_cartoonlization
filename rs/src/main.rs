@@ -77,17 +77,20 @@ struct Cli {
 
 /// 验证参数范围和输出格式。
 fn validate(params: &Params, out_path: &Path) -> Result<(), String> {
-    if params.edge_thresh < 0.0 || params.edge_thresh > 1.0 {
+    if !params.edge_thresh.is_finite() || params.edge_thresh < 0.0 || params.edge_thresh > 1.0 {
         return Err("--edge-thresh 必须在 0.0 ~ 1.0 之间".to_string());
     }
     if params.radius < 1 || params.radius > 50 {
         return Err("--radius 必须在 1 ~ 50 之间".to_string());
     }
-    if params.sigma_d <= 0.0 {
+    if !params.sigma_d.is_finite() || params.sigma_d <= 0.0 {
         return Err("--sigma-d 必须大于 0".to_string());
     }
-    if params.sigma_r <= 0.0 {
+    if !params.sigma_r.is_finite() || params.sigma_r <= 0.0 {
         return Err("--sigma-r 必须大于 0".to_string());
+    }
+    if !params.sat_scalar.is_finite() {
+        return Err("--sat 必须是有限数值".to_string());
     }
     if params.loop_num < 1 || params.loop_num > 10 {
         return Err("--loop 必须在 1 ~ 10 之间".to_string());
@@ -128,10 +131,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 设置 Rayon 线程池大小
     if cli.workers > 0 {
-        rayon::ThreadPoolBuilder::new()
+        if let Err(e) = rayon::ThreadPoolBuilder::new()
             .num_threads(cli.workers)
             .build_global()
-            .map_err(|e| format!("设置线程池失败: {}", e))?;
+        {
+            eprintln!("警告: 无法设置线程数 (可能已初始化): {}", e);
+        }
     }
 
     let load_start = Instant::now();

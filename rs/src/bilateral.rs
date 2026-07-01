@@ -21,12 +21,12 @@ fn bilat_color(lab: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageDa
 
     // 预计算空域高斯核 G(x,y) = exp(-(x²+y²)/(2σ_d²))
     let domain_kernel: Vec<Vec<f64>> = (0..kernel_size)
-        .map(|dx| {
-            let dx_f = dx as isize - w as isize;
+        .map(|ki| {
+            let di = ki as isize - w as isize;
             (0..kernel_size)
-                .map(|dy| {
-                    let dy_f = dy as isize - w as isize;
-                    (-(dx_f * dx_f + dy_f * dy_f) as f64 / (2.0 * sigma_d * sigma_d)).exp()
+                .map(|kj| {
+                    let dj = kj as isize - w as isize;
+                    (-(di * di + dj * dj) as f64 / (2.0 * sigma_d * sigma_d)).exp()
                 })
                 .collect()
         })
@@ -82,6 +82,10 @@ fn bilat_color(lab: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageDa
                     row[base] = sum_l / sum_w;
                     row[base + 1] = sum_a / sum_w;
                     row[base + 2] = sum_b / sum_w;
+                } else {
+                    row[base] = cur_l;
+                    row[base + 1] = cur_a;
+                    row[base + 2] = cur_b;
                 }
             }
         });
@@ -102,12 +106,12 @@ fn bilat_gray(img: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageDat
 
     // 预计算空域高斯核
     let domain_kernel: Vec<Vec<f64>> = (0..kernel_size)
-        .map(|dx| {
-            let dx_f = dx as isize - w as isize;
+        .map(|ki| {
+            let di = ki as isize - w as isize;
             (0..kernel_size)
-                .map(|dy| {
-                    let dy_f = dy as isize - w as isize;
-                    (-(dx_f * dx_f + dy_f * dy_f) as f64 / (2.0 * sigma_d * sigma_d)).exp()
+                .map(|kj| {
+                    let dj = kj as isize - w as isize;
+                    (-(di * di + dj * dj) as f64 / (2.0 * sigma_d * sigma_d)).exp()
                 })
                 .collect()
         })
@@ -140,6 +144,8 @@ fn bilat_gray(img: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageDat
 
             if sum_w > 0.0 {
                 row[x] = sum_val / sum_w;
+            } else {
+                row[x] = cur_val;
             }
         }
     });
@@ -157,8 +163,13 @@ fn bilat_gray(img: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageDat
 /// 根据通道数自动选择灰度或彩色路径。
 /// 彩色路径内部完成 RGB→Lab→滤波→RGB 的全流程。
 ///
-/// 注意: 调用者须确保 σ_d > 0 且 σ_r > 0，否则会出现除零异常。
+/// 当 σ_d ≤ 0 或 σ_r ≤ 0 时，滤波器退化为直通（返回输入副本），
+/// 避免除零产生 NaN。
 pub fn bilateral_filter(img: &ImageData, w: usize, sigma_d: f64, sigma_r: f64) -> ImageData {
+    // sigma 为零或非法值时退化为直通，避免 0/0 → NaN
+    if !(sigma_d.is_finite() && sigma_r.is_finite() && sigma_d > 0.0 && sigma_r > 0.0) {
+        return img.clone();
+    }
     if img.channels == 1 {
         bilat_gray(img, w, sigma_d, sigma_r)
     } else {
@@ -239,5 +250,22 @@ mod tests {
         assert_eq!(result.channels, 1);
         assert_eq!(result.width, 3);
         assert_eq!(result.height, 3);
+    }
+
+    #[test]
+    fn test_sigma_zero_returns_clone() {
+        let mut img = ImageData::new(2, 2, 3);
+        img.set(0, 0, 0, 0.7);
+        img.set(1, 1, 1, 0.3);
+        // σ_r = 0 应触发直通
+        let result = bilateral_filter(&img, 5, 3.0, 0.0);
+        assert_eq!(result.width, img.width);
+        assert_eq!(result.height, img.height);
+        assert!((result.get(0, 0, 0) - 0.7).abs() < 1e-10);
+        assert!((result.get(1, 1, 1) - 0.3).abs() < 1e-10);
+        // σ_d = 0 也应触发直通
+        let result2 = bilateral_filter(&img, 5, 0.0, 0.1);
+        assert!((result2.get(0, 0, 0) - 0.7).abs() < 1e-10);
+        assert!((result2.get(1, 1, 1) - 0.3).abs() < 1e-10);
     }
 }

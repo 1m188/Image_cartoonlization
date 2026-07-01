@@ -52,7 +52,14 @@ pub fn detect_edges(gray: &ImageData, threshold: f64) -> ImageData {
 /// 其余像素保留模糊值并钳制到 [0,1]。
 ///
 /// 等价于 MATLAB 中的 `img - img .* edge_mask`。
+///
+/// # Panics
+/// 若 `blurred` 非 3 通道或 `edge_mask` 尺寸不匹配会 panic。
 pub fn overlay_edges(blurred: &ImageData, edge_mask: &ImageData) -> ImageData {
+    assert_eq!(blurred.channels, 3, "blurred 必须是 3 通道 RGB");
+    assert_eq!(blurred.width, edge_mask.width);
+    assert_eq!(blurred.height, edge_mask.height);
+    assert!(edge_mask.channels >= 1, "edge_mask 至少需要 1 通道");
     let height = blurred.height;
     let width = blurred.width;
     let mut data = vec![0.0f64; width * height * 3];
