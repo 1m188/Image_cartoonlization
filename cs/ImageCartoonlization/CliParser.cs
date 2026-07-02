@@ -59,7 +59,23 @@ public static class CliParser
         ArgumentNullException.ThrowIfNull(args);
 
         // ── 帮助标志 ─────────────────────────────────────────
-        if (args.Contains("--help") || args.Contains("-h"))
+        // 仅在 -i 的值位置上包含 -h/--help 时不触发帮助模式
+        var inputIdx = Array.IndexOf(args, "-i");
+        var helpFlagIdx = args.Length;
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (args[i] is null)
+            {
+                return Error("错误：命令行参数中包含空值", 1);
+            }
+            if ((args[i] == "--help" || args[i] == "-h") &&
+                (inputIdx < 0 || i != inputIdx + 1))
+            {
+                helpFlagIdx = i;
+                break;
+            }
+        }
+        if (helpFlagIdx < args.Length)
         {
             return new CliParseResult
             {
@@ -70,32 +86,79 @@ public static class CliParser
         }
 
         // ── 必选参数 -i ─────────────────────────────────────
-        var inputIdx = Array.IndexOf(args, "-i");
         if (inputIdx < 0 || inputIdx + 1 >= args.Length)
         {
             return Error("错误：缺少输入图片路径，使用 -i 指定\n使用 -h 查看完整帮助信息", 1);
         }
         var inputPath = args[inputIdx + 1];
 
+        // ── 检查 inputPath 是否疑似参数名 ─────────────────
+        if (inputPath.StartsWith('-'))
+        {
+            return Error(
+                $"错误：-i 后的值 \"{inputPath}\" 看起来像参数名，请输入有效的图片路径\n使用 -h 查看完整帮助信息",
+                1);
+        }
+
+        // ── 检查是否出现了多个 -i ─────────────────────────
+        for (var i = inputIdx + 1; i < args.Length; i++)
+        {
+            if (args[i] == "-i")
+            {
+                return Error(
+                    "错误：检测到多个 -i 参数，只能指定一个输入图片路径\n使用 -h 查看完整帮助信息",
+                    1);
+            }
+        }
+
         // ── 可选参数默认值 ──────────────────────────────────
         var outputPath = "cartoon.png";
         var p = Params.Default;
         var verbose = false;
 
+        // ── 已知参数集合 ────────────────────────────────────
+        var knownFlags = new HashSet<string>
+        {
+            "-o", "-v", "--edge-thresh", "--sat", "--radius",
+            "--sigma-d", "--sigma-r", "--loop", "--workers"
+        };
+
         // ── 解析所有可选参数 ────────────────────────────────
         for (var i = 0; i < args.Length; i++)
         {
-            switch (args[i])
+            // 跳过 -i 及其紧跟的值（避免将其值误解析为标志）
+            if (i == inputIdx || i == inputIdx + 1) continue;
+
+            var arg = args[i];
+            if (arg.StartsWith('-') && !knownFlags.Contains(arg))
             {
-                case "-o" when i + 1 < args.Length:
+                return Error(
+                    $"错误：未知参数 \"{arg}\"\n使用 -h 查看完整帮助信息",
+                    1);
+            }
+
+            switch (arg)
+            {
+                case "-o":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：-o 缺少输出路径值", 1);
                     outputPath = args[i + 1];
+                    if (outputPath.StartsWith('-'))
+                    {
+                        return Error(
+                            $"-o 后的值 \"{outputPath}\" 看起来像参数名，请输入有效的输出路径\n使用 -h 查看完整帮助信息",
+                            1);
+                    }
+                    i++;
                     break;
 
                 case "-v":
                     verbose = true;
                     break;
 
-                case "--edge-thresh" when i + 1 < args.Length:
+                case "--edge-thresh":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--edge-thresh 缺少值", 1);
                     if (TryParseFloat(args[i + 1], out var et))
                     {
                         if (et < 0 || et > 1)
@@ -103,9 +166,12 @@ public static class CliParser
                         p = p with { EdgeThresh = et };
                     }
                     else return Error($"错误：--edge-thresh 值 \"{args[i + 1]}\" 不是有效数字", 1);
+                    i++;
                     break;
 
-                case "--sat" when i + 1 < args.Length:
+                case "--sat":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--sat 缺少值", 1);
                     if (TryParseFloat(args[i + 1], out var sat))
                     {
                         if (sat < 0)
@@ -113,9 +179,12 @@ public static class CliParser
                         p = p with { SatScalar = sat };
                     }
                     else return Error($"错误：--sat 值 \"{args[i + 1]}\" 不是有效数字", 1);
+                    i++;
                     break;
 
-                case "--radius" when i + 1 < args.Length:
+                case "--radius":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--radius 缺少值", 1);
                     if (TryParseInt(args[i + 1], out var r))
                     {
                         if (r < 1 || r > 50)
@@ -123,9 +192,12 @@ public static class CliParser
                         p = p with { Radius = r };
                     }
                     else return Error($"错误：--radius 值 \"{args[i + 1]}\" 不是有效整数", 1);
+                    i++;
                     break;
 
-                case "--sigma-d" when i + 1 < args.Length:
+                case "--sigma-d":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--sigma-d 缺少值", 1);
                     if (TryParseFloat(args[i + 1], out var sd))
                     {
                         if (sd <= 0)
@@ -133,9 +205,12 @@ public static class CliParser
                         p = p with { SigmaD = sd };
                     }
                     else return Error($"错误：--sigma-d 值 \"{args[i + 1]}\" 不是有效数字", 1);
+                    i++;
                     break;
 
-                case "--sigma-r" when i + 1 < args.Length:
+                case "--sigma-r":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--sigma-r 缺少值", 1);
                     if (TryParseFloat(args[i + 1], out var sr))
                     {
                         if (sr <= 0)
@@ -143,9 +218,12 @@ public static class CliParser
                         p = p with { SigmaR = sr };
                     }
                     else return Error($"错误：--sigma-r 值 \"{args[i + 1]}\" 不是有效数字", 1);
+                    i++;
                     break;
 
-                case "--loop" when i + 1 < args.Length:
+                case "--loop":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--loop 缺少值", 1);
                     if (TryParseInt(args[i + 1], out var l))
                     {
                         if (l < 1 || l > 10)
@@ -153,9 +231,12 @@ public static class CliParser
                         p = p with { LoopNum = l };
                     }
                     else return Error($"错误：--loop 值 \"{args[i + 1]}\" 不是有效整数", 1);
+                    i++;
                     break;
 
-                case "--workers" when i + 1 < args.Length:
+                case "--workers":
+                    if (i + 1 >= args.Length)
+                        return Error("错误：--workers 缺少值", 1);
                     if (TryParseInt(args[i + 1], out var w))
                     {
                         if (w < 0)
@@ -163,6 +244,7 @@ public static class CliParser
                         p = p with { Workers = w };
                     }
                     else return Error($"错误：--workers 值 \"{args[i + 1]}\" 不是有效整数", 1);
+                    i++;
                     break;
             }
         }

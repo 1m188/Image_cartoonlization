@@ -88,34 +88,34 @@ public static class LabColor
     }
 
     /// <summary>
-    /// 将值钳制到 [0.0, 1.0] 范围内。
-    /// </summary>
-    private static float Clamp01(float v)
-    {
-        if (v < 0) return 0;
-        if (v > 1) return 1;
-        return v;
-    }
-
-    /// <summary>
     /// 将 sRGB 色彩空间的图片转换到 CIELab 色彩空间。
     /// 输出三个通道依次为 L、a、b。
     /// </summary>
     /// <param name="img">输入的 RGB 图片数据，像素值范围 [0, 1]</param>
     /// <returns>CIELab 色彩空间的图片数据</returns>
+    /// <exception cref="ArgumentException">输入图像通道数不为 3</exception>
     public static ImageData RgbToLab(ImageData img)
     {
+        if (img.Channels != 3)
+        {
+            throw new ArgumentException($"RgbToLab 要求 3 通道 RGB 输入，实际通道数为 {img.Channels}", nameof(img));
+        }
+
         var height = img.Height;
         var width = img.Width;
         var lab = new ImageData(width, height, 3);
+        var src = img.Data;
+        var dst = lab.Data;
 
         for (var y = 0; y < height; y++)
         {
+            var rowBase = y * width * 3;
             for (var x = 0; x < width; x++)
             {
-                var r = img.GetPixel(y, x, 0);
-                var g = img.GetPixel(y, x, 1);
-                var b = img.GetPixel(y, x, 2);
+                var idx = rowBase + x * 3;
+                var r = src[idx];
+                var g = src[idx + 1];
+                var b = src[idx + 2];
 
                 // sRGB → 线性 RGB
                 var rLin = SRgbToLinear(r);
@@ -132,9 +132,9 @@ public static class LabColor
                 var a = 500.0f * (F(xVal / Xn) - F(yVal / Yn));
                 var bStar = 200.0f * (F(yVal / Yn) - F(zVal / Zn));
 
-                lab.SetPixel(y, x, 0, l);
-                lab.SetPixel(y, x, 1, a);
-                lab.SetPixel(y, x, 2, bStar);
+                dst[idx] = l;
+                dst[idx + 1] = a;
+                dst[idx + 2] = bStar;
             }
         }
         return lab;
@@ -145,19 +145,29 @@ public static class LabColor
     /// </summary>
     /// <param name="img">输入的 CIELab 图片数据</param>
     /// <returns>sRGB 色彩空间的图片数据，像素值范围 [0, 1]</returns>
+    /// <exception cref="ArgumentException">输入图像通道数不为 3</exception>
     public static ImageData LabToRgb(ImageData img)
     {
+        if (img.Channels != 3)
+        {
+            throw new ArgumentException($"LabToRgb 要求 3 通道 CIELab 输入，实际通道数为 {img.Channels}", nameof(img));
+        }
+
         var height = img.Height;
         var width = img.Width;
         var rgb = new ImageData(width, height, 3);
+        var src = img.Data;
+        var dst = rgb.Data;
 
         for (var y = 0; y < height; y++)
         {
+            var rowBase = y * width * 3;
             for (var x = 0; x < width; x++)
             {
-                var l = img.GetPixel(y, x, 0);
-                var a = img.GetPixel(y, x, 1);
-                var bStar = img.GetPixel(y, x, 2);
+                var idx = rowBase + x * 3;
+                var l = src[idx];
+                var a = src[idx + 1];
+                var bStar = src[idx + 2];
 
                 // CIELab → CIE XYZ
                 var fy = (l + 16.0f) / 116.0f;
@@ -174,9 +184,9 @@ public static class LabColor
                 var bLin = 0.0556434f * xx - 0.2040259f * yy + 1.0572252f * zz;
 
                 // 钳制到 [0, 1] 再加 gamma 校正
-                rgb.SetPixel(y, x, 0, LinearToSRgb(Clamp01(rLin)));
-                rgb.SetPixel(y, x, 1, LinearToSRgb(Clamp01(gLin)));
-                rgb.SetPixel(y, x, 2, LinearToSRgb(Clamp01(bLin)));
+                dst[idx] = LinearToSRgb(Math.Clamp(rLin, 0f, 1f));
+                dst[idx + 1] = LinearToSRgb(Math.Clamp(gLin, 0f, 1f));
+                dst[idx + 2] = LinearToSRgb(Math.Clamp(bLin, 0f, 1f));
             }
         }
         return rgb;
@@ -188,20 +198,30 @@ public static class LabColor
     /// </summary>
     /// <param name="img">输入的 RGB 图片数据</param>
     /// <returns>单通道灰度图数据</returns>
+    /// <exception cref="ArgumentException">输入图像通道数不为 3</exception>
     public static ImageData RgbToGray(ImageData img)
     {
+        if (img.Channels != 3)
+        {
+            throw new ArgumentException($"RgbToGray 要求 3 通道 RGB 输入，实际通道数为 {img.Channels}", nameof(img));
+        }
+
         var height = img.Height;
         var width = img.Width;
         var gray = new ImageData(width, height, 1);
+        var src = img.Data;
+        var dst = gray.Data;
 
         for (var y = 0; y < height; y++)
         {
+            var rowBase = y * width * 3;
             for (var x = 0; x < width; x++)
             {
-                gray.SetPixel(y, x, 0,
-                    0.299f * img.GetPixel(y, x, 0) +
-                    0.587f * img.GetPixel(y, x, 1) +
-                    0.114f * img.GetPixel(y, x, 2));
+                var idx = rowBase + x * 3;
+                dst[y * width + x] =
+                    0.299f * src[idx] +
+                    0.587f * src[idx + 1] +
+                    0.114f * src[idx + 2];
             }
         }
         return gray;

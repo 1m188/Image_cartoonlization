@@ -84,5 +84,47 @@
 ## 10. 全局代码审查
 
 - [x] 10.1 对全部代码进行全面审查：检查 Bug、逻辑错误、矛盾、边界情况、性能问题、规格符合性
-- [x] 10.2 如发现问题：修复后返回 10.1 重新审查
-- [x] 10.3 确认无任何问题：审查循环完成，项目结束
+- [x] 10.2 MPLR 审查：发现 6 个问题（2 个 CliParser 逻辑缺陷、2 个 API 防御缺失、重复代码、命名优化），全部修复
+- [x] 10.3 补充测试：ImageData 零/负通道校验、BilateralFilter sigma=0 guard、CliParser 缺值/误用、EdgeOverlay 越界值、灰度双边滤波实际效果、<3x3 图像边缘检测
+- [x] 10.4 确认无任何问题：审查循环完成，项目结束
+
+## 11. MPLR 审查修复（2026-07-02）
+
+- [x] 11.1 修复 ImageData 构造器：增加 Channels > 0 校验 (`ArgumentOutOfRangeException`)
+- [x] 11.2 修复 BilateralFilter.Apply：增加 sigma_d / sigma_r <= 0 防御性返回原图
+- [x] 11.3 修复 CliParser：-i 后跟 "-" 开头的值时拒绝（防止 `-i --edge-thresh` 误解析）
+- [x] 11.4 修复 CliParser：数值标志（--edge-thresh 等）缺值时明确报错
+- [x] 11.5 消除重复代码：Saturation/EdgeDetection/LabColor 中 Clamp01 统一替换为 Math.Clamp
+- [x] 11.6 改进 BuildDomainKernel 命名：dx/dy → rowOff/colOff（消除歧义）
+- [x] 11.7 补充 12 个新测试用例（总计 74 tests，全部通过，0 警告）
+
+## 12. MPLR 第二轮审查修复（2026-07-02）
+
+- [x] 12.1 (L1) 修复 ImageData 构造器：增加 Width > 0 / Height > 0 校验 (`ArgumentOutOfRangeException`)
+- [x] 12.2 (L2) 修复 EdgeDetection.OverlayEdges：增加 blurred 与 edgeMask 尺寸匹配校验
+- [x] 12.3 (R1) 完善 ImageData 文档注释：明确说明 struct 值拷贝时 Data 数组引用共享的语义
+- [x] 12.4 (R2) 修复 GetPixel/SetPixel：增加 `(uint)idx >= limit` 边界检查，异常类型从 `IndexOutOfRangeException` 改为 `ArgumentOutOfRangeException`（符合 CA2201）
+- [x] 12.5 (R3) 修复 LabColor：RgbToLab / LabToRgb / RgbToGray 增加 channels != 3 校验
+- [x] 12.6 (P1) 优化 BilateralFilter 内层循环：每个邻域像素仅读取一次（原为 6 次 GetPixel 调用 → 3 次直接 Data 数组访问），消除重复读取
+- [x] 12.7 (P2) 优化 BilateralFilter 内层循环：预计算 rowBase / kyBase 避免重复索引计算
+- [x] 12.8 (P3) 优化 EdgeDetection：Sobel 核改为 `static readonly` 避免每次调用时重复分配
+- [x] 12.9 (P4) 优化 BilateralFilter.BuildDomainKernel：从 `float[][]` 锯齿数组改为 `float[]` 一维数组 + 手动索引
+- [x] 12.10 (M1) 优化 Program.cs：查找总耗时步骤从 foreach 线性搜索改为 `steps[^1]` 直接索引
+- [x] 12.11 (M2) 规范化 CartoonPipeline：edgeCount 统计改为使用 GetPixel API（而非直接遍历 Data 数组）
+- [x] 12.12 (M3) 简化 BuildDomainKernel：移除冗余 `size` 参数，内部直接计算 `kernelSize = 2*w+1`
+- [x] 12.13 补充 12 个新测试用例（总计 86 tests，全部通过，0 警告）
+
+## 13. MPLR 第三轮审查修复（2026-07-02）
+
+- [x] 13.1 (L1) 修复 ImageIO.SaveImage：channels 守卫 `< 3` → `!= 3`，防止 >3 通道图像步长错误
+- [x] 13.2 (M1) 修复 CliParser：增加 `knownFlags` 集合校验，未知参数（如 `--edge-thres`）明确报错
+- [x] 13.3 (L2) 修复 CliParser：检测多个 `-i` 出现时明确报错
+- [x] 13.4 (L3) 修复 ImageIO.FloatToByte：增加 `float.IsNaN()` 显式检查
+- [x] 13.5 (R1) 修复 ImageData 构造器：`(long)width*height*channels > Array.MaxLength` 溢出检查
+- [x] 13.6 (R4) 修复 BilateralFilter.Apply：增加 `float.IsNaN` / `float.IsInfinity` sigma 检查
+- [x] 13.7 (P1) 优化 LabColor.RgbToLab / LabToRgb / RgbToGray：改用直接 Data 数组访问
+- [x] 13.8 (P2) 优化 EdgeDetection.OverlayEdges：改用直接 Data 数组访问
+- [x] 13.9 (P2) 优化 Saturation.AdjustSaturation：改用直接 Data 数组访问
+- [x] 13.10 优化 CartoonPipeline.edgeCount：改用直接 Data 数组遍历
+- [x] 13.11 验证：`dotnet format --verify-no-changes && dotnet build /warnaserror && dotnet test` — 全部通过
+

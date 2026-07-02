@@ -84,14 +84,9 @@ static class Program
         }
 
         // ── 总耗时 ─────────────────────────────────────────
-        foreach (var s in steps)
-        {
-            if (s.Name == "总处理")
-            {
-                Console.WriteLine($"[完成] 总耗时 {RoundDuration(s.Duration)}");
-                break;
-            }
-        }
+        var totalStep = steps[^1];
+        var totalDur = loadDur + totalStep.Duration + saveDur;
+        Console.WriteLine($"[完成] 总耗时 {RoundDuration(totalDur)}");
 
         return 0;
     }

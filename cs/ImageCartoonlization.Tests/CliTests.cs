@@ -119,4 +119,122 @@ public class CliTests
         Assert.False(result.IsValid);
         Assert.NotEqual(0, result.ExitCode);
     }
+
+    [Fact]
+    public void ParseArgs_InputPathLooksLikeFlag_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "--edge-thresh", "0.1"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_InputPathLooksLikeShortFlag_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "-v"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_EdgeThreshMissingValue_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "--edge-thresh"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_RadiusMissingValue_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "--radius"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_SigmaDMissingValue_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "--sigma-d"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_LoopMissingValue_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "--loop"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_OutputPathMissingValue_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "-o"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_MultipleFlags_CorrectlySkipValues()
+    {
+        var result = CliParser.ParseArgs([
+            "-i", "photo.jpg",
+            "--radius", "5",
+            "--sat", "3.0",
+            "--loop", "2"
+        ]);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(5, result.Params.Radius);
+        Assert.Equal(3.0f, result.Params.SatScalar);
+        Assert.Equal(2, result.Params.LoopNum);
+    }
+
+    [Fact]
+    public void ParseArgs_OutputPathLooksLikeFlag_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "-o", "--edge-thresh"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+    }
+
+    [Fact]
+    public void ParseArgs_UnknownFlag_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "photo.jpg", "--edge-thres"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("未知参数", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ParseArgs_DuplicateInput_Errors()
+    {
+        var result = CliParser.ParseArgs(["-i", "a.jpg", "-i", "b.jpg"]);
+
+        Assert.False(result.IsValid);
+        Assert.NotEqual(0, result.ExitCode);
+        Assert.Contains("多个 -i", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ParseArgs_HelpFlagAfterI_DoesNotTriggerHelp()
+    {
+        var result = CliParser.ParseArgs(["-i", "-h"]);
+
+        Assert.False(result.IsValid);
+        Assert.False(result.ShowHelp);
+        Assert.NotEqual(0, result.ExitCode);
+    }
 }

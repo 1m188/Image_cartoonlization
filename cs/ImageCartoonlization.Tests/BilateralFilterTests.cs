@@ -110,4 +110,62 @@ public class BilateralFilterTests
         Assert.Equal(4, result.Width);
         Assert.Equal(4, result.Height);
     }
+
+    [Fact]
+    public void Apply_SigmaDZero_ReturnsIdentity()
+    {
+        var img = new ImageData(4, 4, 3);
+        for (var i = 0; i < img.Data.Length; i++) img.Data[i] = 0.5f;
+
+        var result = BilateralFilter.Apply(img, 2, 0.0f, 0.1f);
+
+        for (var i = 0; i < img.Data.Length; i++)
+        {
+            Assert.Equal(img.Data[i], result.Data[i], 1e-6f);
+        }
+    }
+
+    [Fact]
+    public void Apply_SigmaRZero_ReturnsIdentity()
+    {
+        var img = new ImageData(4, 4, 3);
+        for (var i = 0; i < img.Data.Length; i++) img.Data[i] = 0.5f;
+
+        var result = BilateralFilter.Apply(img, 2, 3.0f, 0.0f);
+
+        for (var i = 0; i < img.Data.Length; i++)
+        {
+            Assert.Equal(img.Data[i], result.Data[i], 1e-6f);
+        }
+    }
+
+    [Fact]
+    public void Constructor_ZeroDimensions_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(0, 0, 3));
+        Assert.Contains("宽度", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Apply_GrayscaleImage_ActuallySmooths()
+    {
+        var gray = new ImageData(7, 7, 1);
+        for (var y = 0; y < 7; y++)
+        {
+            for (var x = 0; x < 7; x++)
+            {
+                gray.SetPixel(y, x, 0, x < 3 ? 0.0f : 1.0f);
+            }
+        }
+
+        var result = BilateralFilter.Apply(gray, 3, 3.0f, 1000.0f);
+
+        // 大 sigma_r 下灰度双边滤波应产生平滑效果，原始 0/1 值会偏离极端
+        var left = result.GetPixel(3, 1, 0);
+        var right = result.GetPixel(3, 5, 0);
+        Assert.True(left > 0.0f, $"左侧像素应 > 0: got {left:F4}");
+        Assert.True(right < 1.0f, $"右侧像素应 < 1: got {right:F4}");
+        Assert.True(left < right, $"左侧像素应 < 右侧像素: left={left:F4} right={right:F4}");
+    }
 }

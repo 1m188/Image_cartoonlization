@@ -51,6 +51,22 @@
 - **WHEN** `--loop` 为 15
 - **THEN** 程序 SHALL 打印错误并退出非零
 
+#### Scenario: Reject flag-like value after -i
+- **WHEN** `-i` 后跟以 "-" 开头的值（如 `-i --edge-thresh`）
+- **THEN** 程序 SHALL 打印明确错误提示并退出非零
+
+#### Scenario: Reject missing value for numeric flags
+- **WHEN** 数值参数（如 `--edge-thresh`）后缺少值
+- **THEN** 程序 SHALL 打印明确错误（如"缺少值"）并退出非零
+
+#### Scenario: Reject missing value for -o
+- **WHEN** `-o` 后缺少输出路径值
+- **THEN** 程序 SHALL 打印明确错误并退出非零
+
+#### Scenario: Multiple flags correctly skip consumed values
+- **WHEN** 连续使用多个带值的可选参数（如 `--radius 5 --sat 3.0`）
+- **THEN** 程序 SHALL 正确解析，不将前一个参数的值误解析为后一个参数的标志
+
 ### Requirement: Verbose mode outputs per-stage timing
 
 当 `-v` 标志设置时，打印每个处理步骤的耗时和详情。

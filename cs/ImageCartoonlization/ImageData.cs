@@ -19,6 +19,9 @@ namespace ImageCartoonlization;
 
 /// <summary>
 /// 图像数据结构体，内部使用一维 float 数组以通道交错方式存储像素值。
+/// 注意：本结构体为 struct 类型但包含 float[] 引用类型成员，
+///       值拷贝（赋值/传参）会共享底层 Data 数组，而非深拷贝。
+///       欲获得独立副本需显式创建新 ImageData 并复制 Data。
 /// </summary>
 [SuppressMessage("Design", "CA1819:Properties should not return arrays",
     Justification = "Data 属性需要在管线中直接访问以进行高性能逐像素操作，返回数组引用是设计选择")]
@@ -45,8 +48,23 @@ public struct ImageData : IEquatable<ImageData>
     /// <param name="width">图像宽度</param>
     /// <param name="height">图像高度</param>
     /// <param name="channels">通道数</param>
+    /// <exception cref="ArgumentOutOfRangeException">width、height 或 channels <= 0</exception>
     public ImageData(int width, int height, int channels)
     {
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), "图像宽度必须 > 0");
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), "图像高度必须 > 0");
+        if (channels <= 0)
+            throw new ArgumentOutOfRangeException(nameof(channels), "通道数必须 > 0");
+
+        var size = (long)width * height * channels;
+        if (size > Array.MaxLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                $"图像数据量 {size} 超过最大数组长度 {Array.MaxLength}");
+        }
+
         Width = width;
         Height = height;
         Channels = channels;
@@ -59,9 +77,33 @@ public struct ImageData : IEquatable<ImageData>
     /// <param name="width">图像宽度</param>
     /// <param name="height">图像高度</param>
     /// <param name="channels">通道数</param>
-    /// <param name="data">像素数据数组</param>
+    /// <param name="data">像素数据数组，长度必须等于 width * height * channels</param>
+    /// <exception cref="ArgumentException">数组长度不匹配</exception>
+    /// <exception cref="ArgumentOutOfRangeException">width、height 或 channels <= 0</exception>
     public ImageData(int width, int height, int channels, float[] data)
     {
+        ArgumentNullException.ThrowIfNull(data);
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width), "图像宽度必须 > 0");
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), "图像高度必须 > 0");
+        if (channels <= 0)
+            throw new ArgumentOutOfRangeException(nameof(channels), "通道数必须 > 0");
+
+        var size = (long)width * height * channels;
+        if (size > Array.MaxLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                $"图像数据量 {size} 超过最大数组长度 {Array.MaxLength}");
+        }
+
+        var expected = (int)size;
+        if (data.Length != expected)
+        {
+            throw new ArgumentException(
+                $"数据数组长度 {data.Length} 与期望 {expected} (={width}×{height}×{channels}) 不匹配",
+                nameof(data));
+        }
         Width = width;
         Height = height;
         Channels = channels;
@@ -75,8 +117,18 @@ public struct ImageData : IEquatable<ImageData>
     /// <param name="x">列索引（0 起始）</param>
     /// <param name="c">通道索引（0 起始）</param>
     /// <returns>像素通道值</returns>
+    /// <exception cref="ArgumentOutOfRangeException">坐标越界</exception>
     public readonly float GetPixel(int y, int x, int c)
     {
+        if (Data is null)
+        {
+            throw new InvalidOperationException("ImageData 未初始化，像素数据为空");
+        }
+        if ((uint)y >= (uint)Height || (uint)x >= (uint)Width || (uint)c >= (uint)Channels)
+        {
+            throw new ArgumentOutOfRangeException(
+                $"像素坐标越界: (y={y}, x={x}, c={c})，图像尺寸为 {Width}×{Height}，通道数 {Channels}");
+        }
         return Data[(y * Width + x) * Channels + c];
     }
 
@@ -87,8 +139,18 @@ public struct ImageData : IEquatable<ImageData>
     /// <param name="x">列索引（0 起始）</param>
     /// <param name="c">通道索引（0 起始）</param>
     /// <param name="value">要设置的像素值</param>
+    /// <exception cref="ArgumentOutOfRangeException">坐标越界</exception>
     public void SetPixel(int y, int x, int c, float value)
     {
+        if (Data is null)
+        {
+            throw new InvalidOperationException("ImageData 未初始化，像素数据为空");
+        }
+        if ((uint)y >= (uint)Height || (uint)x >= (uint)Width || (uint)c >= (uint)Channels)
+        {
+            throw new ArgumentOutOfRangeException(
+                $"像素坐标越界: (y={y}, x={x}, c={c})，图像尺寸为 {Width}×{Height}，通道数 {Channels}");
+        }
         Data[(y * Width + x) * Channels + c] = value;
     }
 

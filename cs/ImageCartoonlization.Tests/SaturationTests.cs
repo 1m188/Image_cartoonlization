@@ -91,6 +91,15 @@ public class SaturationTests
         Assert.Equal(3, result.Channels);
     }
 
+    [Fact]
+    public void AdjustSaturation_WrongChannels_Throws()
+    {
+        var img = new ImageData(3, 3, 1);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            Saturation.AdjustSaturation(img, 2.0f));
+        Assert.Contains("3 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static float ChannelVariance(ImageData img, int y, int x)
     {
         var r = img.GetPixel(y, x, 0);

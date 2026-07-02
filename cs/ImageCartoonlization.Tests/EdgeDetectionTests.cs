@@ -149,6 +149,70 @@ public class EdgeDetectionTests
         Assert.Equal(3, result.Channels);
     }
 
+    [Fact]
+    public void OverlayEdges_DimensionMismatch_Throws()
+    {
+        var img = new ImageData(5, 5, 3);
+        var mask = new ImageData(3, 3, 1);
+
+        var ex = Assert.Throws<ArgumentException>(() =>
+            EdgeDetection.OverlayEdges(img, mask));
+        Assert.Contains("不匹配", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OverlayEdges_OutOfRangeValues_Clamped()
+    {
+        var img = new ImageData(2, 2, 3);
+        img.SetPixel(0, 0, 0, 1.5f);
+        img.SetPixel(0, 0, 1, -0.5f);
+        img.SetPixel(0, 0, 2, 2.0f);
+        var mask = new ImageData(2, 2, 1);
+
+        var result = EdgeDetection.OverlayEdges(img, mask);
+
+        Assert.InRange(result.GetPixel(0, 0, 0), 0f, 1f);
+        Assert.InRange(result.GetPixel(0, 0, 1), 0f, 1f);
+        Assert.InRange(result.GetPixel(0, 0, 2), 0f, 1f);
+    }
+
+    [Fact]
+    public void DetectEdges_TinyImage_ReturnsZeroMask()
+    {
+        var tiny = new ImageData(2, 2, 1);
+        tiny.SetPixel(0, 0, 0, 0.0f);
+        tiny.SetPixel(0, 1, 0, 1.0f);
+        tiny.SetPixel(1, 0, 0, 1.0f);
+        tiny.SetPixel(1, 1, 0, 0.0f);
+
+        var mask = EdgeDetection.DetectEdges(tiny, 0.01f);
+
+        for (var i = 0; i < mask.Data.Length; i++)
+        {
+            Assert.Equal(0f, mask.Data[i]);
+        }
+    }
+
+    [Fact]
+    public void OverlayEdges_WrongBlurredChannels_Throws()
+    {
+        var img = new ImageData(3, 3, 1);
+        var mask = new ImageData(3, 3, 1);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            EdgeDetection.OverlayEdges(img, mask));
+        Assert.Contains("3 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OverlayEdges_WrongMaskChannels_Throws()
+    {
+        var img = new ImageData(3, 3, 3);
+        var mask = new ImageData(3, 3, 3);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            EdgeDetection.OverlayEdges(img, mask));
+        Assert.Contains("1 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static int CountEdges(ImageData mask)
     {
         var count = 0;

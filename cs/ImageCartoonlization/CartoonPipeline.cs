@@ -111,12 +111,13 @@ public static class CartoonPipeline
         var edgeMask = EdgeDetection.DetectEdges(gray, p.EdgeThresh);
 
         var edgeCount = 0;
-        for (var i = 0; i < edgeMask.Data.Length; i++)
+        var totalPixels = edgeMask.PixelCount;
+        var maskData = edgeMask.Data;
+        for (var i = 0; i < maskData.Length; i++)
         {
-            if (edgeMask.Data[i] > 0.5f) edgeCount++;
+            if (maskData[i] > 0.5f) edgeCount++;
         }
-        var totalPixels = edgeMask.Width * edgeMask.Height;
-        var edgePct = (float)edgeCount / Math.Max(totalPixels, 1) * 100f;
+        var edgePct = (float)edgeCount / totalPixels * 100f;
 
         steps.Add(new StepResult
         {
@@ -151,7 +152,8 @@ public static class CartoonPipeline
         // ── 步骤 6：最终钳制 ───────────────────────────────
         for (var i = 0; i < img.Data.Length; i++)
         {
-            img.Data[i] = Math.Clamp(img.Data[i], 0f, 1f);
+            var v = img.Data[i];
+            img.Data[i] = float.IsNaN(v) ? 0f : Math.Clamp(v, 0f, 1f);
         }
 
         steps.Add(new StepResult

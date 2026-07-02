@@ -112,9 +112,15 @@ public static class ImageIO
     /// </summary>
     /// <param name="path">输出文件路径</param>
     /// <param name="img">要保存的图像数据</param>
-    /// <exception cref="InvalidOperationException">输出格式不支持</exception>
+    /// <exception cref="InvalidOperationException">输出格式不支持或通道数不足</exception>
     public static void SaveImage(string path, ImageData img)
     {
+        if (img.Channels != 3)
+        {
+            throw new InvalidOperationException(
+                $"无法保存: 需要 3 通道 RGB 数据，但当前为 {img.Channels} 通道");
+        }
+
         var ext = Path.GetExtension(path).ToLowerInvariant();
 
         using var image = new Image<Rgb24>(img.Width, img.Height);
@@ -156,6 +162,7 @@ public static class ImageIO
     /// </summary>
     private static byte FloatToByte(float v)
     {
+        if (float.IsNaN(v)) return 0;
         var val = v * 255f + 0.5f;
         if (val < 0) return 0;
         if (val > 255) return 255;

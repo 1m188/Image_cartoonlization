@@ -29,37 +29,38 @@ public static class Saturation
     /// <returns>调整后的 RGB 图像数据，值域 [0, 1]</returns>
     public static ImageData AdjustSaturation(ImageData img, float scalar)
     {
+        if (img.Channels != 3)
+        {
+            throw new ArgumentException(
+                $"AdjustSaturation 要求 3 通道 RGB 输入，实际通道数为 {img.Channels}",
+                nameof(img));
+        }
+
         var height = img.Height;
         var width = img.Width;
         var result = new ImageData(width, height, 3);
+        var src = img.Data;
+        var dst = result.Data;
 
         for (var y = 0; y < height; y++)
         {
+            var rowBase = y * width * 3;
             for (var x = 0; x < width; x++)
             {
-                var r = img.GetPixel(y, x, 0);
-                var g = img.GetPixel(y, x, 1);
-                var b = img.GetPixel(y, x, 2);
+                var idx = rowBase + x * 3;
+                var r = src[idx];
+                var g = src[idx + 1];
+                var b = src[idx + 2];
 
                 // 计算灰度值（ITU-R BT.601 系数）
                 var gray = 0.299f * r + 0.587f * g + 0.114f * b;
 
                 // 线性插值/外推并钳制
-                result.SetPixel(y, x, 0, Clamp01((1f - scalar) * gray + scalar * r));
-                result.SetPixel(y, x, 1, Clamp01((1f - scalar) * gray + scalar * g));
-                result.SetPixel(y, x, 2, Clamp01((1f - scalar) * gray + scalar * b));
+                dst[idx] = Math.Clamp((1f - scalar) * gray + scalar * r, 0f, 1f);
+                dst[idx + 1] = Math.Clamp((1f - scalar) * gray + scalar * g, 0f, 1f);
+                dst[idx + 2] = Math.Clamp((1f - scalar) * gray + scalar * b, 0f, 1f);
             }
         }
         return result;
-    }
-
-    /// <summary>
-    /// 将值钳制到 [0.0, 1.0] 范围内。
-    /// </summary>
-    private static float Clamp01(float v)
-    {
-        if (v < 0) return 0;
-        if (v > 1) return 1;
-        return v;
     }
 }

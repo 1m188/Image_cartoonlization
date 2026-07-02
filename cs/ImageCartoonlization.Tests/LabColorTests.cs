@@ -128,7 +128,7 @@ public class LabColorTests
     }
 
     [Fact]
-    public void RgbToLab_LabToRgb_ExcessiveLabClamped()
+    public void RgbToLab_ExcessiveLabClamped()
     {
         var labImg = new ImageData(1, 1, 3);
         labImg.SetPixel(0, 0, 0, 200.0f);
@@ -140,5 +140,32 @@ public class LabColorTests
         Assert.InRange(result.GetPixel(0, 0, 0), 0.0f, 1.0f);
         Assert.InRange(result.GetPixel(0, 0, 1), 0.0f, 1.0f);
         Assert.InRange(result.GetPixel(0, 0, 2), 0.0f, 1.0f);
+    }
+
+    [Fact]
+    public void RgbToLab_WrongChannels_Throws()
+    {
+        var img = new ImageData(1, 1, 1);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            LabColor.RgbToLab(img));
+        Assert.Contains("3 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LabToRgb_WrongChannels_Throws()
+    {
+        var img = new ImageData(1, 1, 1);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            LabColor.LabToRgb(img));
+        Assert.Contains("3 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RgbToGray_WrongChannels_Throws()
+    {
+        var img = new ImageData(1, 1, 1);
+        var ex = Assert.Throws<ArgumentException>(() =>
+            LabColor.RgbToGray(img));
+        Assert.Contains("3 通道", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

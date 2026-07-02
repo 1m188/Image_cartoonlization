@@ -44,40 +44,38 @@ public static class EdgeDetection
             return mask;
         }
 
-        // 3×3 Sobel 核
-        var sobelX = new float[][] {
-            [-1, 0, 1],
-            [-2, 0, 2],
-            [-1, 0, 1]
-        };
-        var sobelY = new float[][] {
-            [1, 2, 1],
-            [0, 0, 0],
-            [-1, -2, -1]
-        };
+        var src = gray.Data;
+        var dst = mask.Data;
 
         // 跳过边界一行/一列以避免越界
         for (var y = 1; y < height - 1; y++)
         {
+            var rowBase = y * width;
             for (var x = 1; x < width - 1; x++)
             {
                 var gx = 0f;
                 var gy = 0f;
 
-                for (var dy = -1; dy <= 1; dy++)
-                {
-                    for (var dx = -1; dx <= 1; dx++)
-                    {
-                        var val = gray.GetPixel(y + dy, x + dx, 0);
-                        gx += val * sobelX[dy + 1][dx + 1];
-                        gy += val * sobelY[dy + 1][dx + 1];
-                    }
-                }
+                var n00 = src[rowBase - width + x - 1];
+                var n01 = src[rowBase - width + x];
+                var n02 = src[rowBase - width + x + 1];
+                var n10 = src[rowBase + x - 1];
+                var n11 = src[rowBase + x];
+                var n12 = src[rowBase + x + 1];
+                var n20 = src[rowBase + width + x - 1];
+                var n21 = src[rowBase + width + x];
+                var n22 = src[rowBase + width + x + 1];
+
+                // Sobel X: [-1,0,1; -2,0,2; -1,0,1]
+                gx = -n00 + n02 - 2f * n10 + 2f * n12 - n20 + n22;
+
+                // Sobel Y: [1,2,1; 0,0,0; -1,-2,-1]
+                gy = n00 + 2f * n01 + n02 - n20 - 2f * n21 - n22;
 
                 var g = Sqrt(gx * gx + gy * gy);
                 if (g > threshold)
                 {
-                    mask.SetPixel(y, x, 0, 1.0f);
+                    dst[rowBase + x] = 1.0f;
                 }
             }
         }
@@ -95,38 +93,52 @@ public static class EdgeDetection
     /// <returns>叠加边缘后的 RGB 图像</returns>
     public static ImageData OverlayEdges(ImageData blurred, ImageData edgeMask)
     {
+        if (blurred.Channels != 3)
+        {
+            throw new ArgumentException(
+                $"OverlayEdges 要求 3 通道 RGB 输入，实际通道数为 {blurred.Channels}",
+                nameof(blurred));
+        }
+        if (edgeMask.Channels != 1)
+        {
+            throw new ArgumentException(
+                $"OverlayEdges 要求 1 通道掩码输入，实际通道数为 {edgeMask.Channels}",
+                nameof(edgeMask));
+        }
+        if (edgeMask.Width != blurred.Width || edgeMask.Height != blurred.Height)
+        {
+            throw new ArgumentException(
+                $"边缘掩码尺寸 ({edgeMask.Width}×{edgeMask.Height}) 与输入图像 ({blurred.Width}×{blurred.Height}) 不匹配",
+                nameof(edgeMask));
+        }
+
         var height = blurred.Height;
         var width = blurred.Width;
         var result = new ImageData(width, height, 3);
+        var src = blurred.Data;
+        var dst = result.Data;
+        var mask = edgeMask.Data;
 
         for (var y = 0; y < height; y++)
         {
+            var rowBase = y * width * 3;
             for (var x = 0; x < width; x++)
             {
-                if (edgeMask.GetPixel(y, x, 0) > 0.5f)
+                var idx = rowBase + x * 3;
+                if (mask[y * width + x] > 0.5f)
                 {
-                    result.SetPixel(y, x, 0, 0.0f);
-                    result.SetPixel(y, x, 1, 0.0f);
-                    result.SetPixel(y, x, 2, 0.0f);
+                    dst[idx] = 0.0f;
+                    dst[idx + 1] = 0.0f;
+                    dst[idx + 2] = 0.0f;
                 }
                 else
                 {
-                    result.SetPixel(y, x, 0, Clamp01(blurred.GetPixel(y, x, 0)));
-                    result.SetPixel(y, x, 1, Clamp01(blurred.GetPixel(y, x, 1)));
-                    result.SetPixel(y, x, 2, Clamp01(blurred.GetPixel(y, x, 2)));
+                    dst[idx] = Math.Clamp(src[idx], 0f, 1f);
+                    dst[idx + 1] = Math.Clamp(src[idx + 1], 0f, 1f);
+                    dst[idx + 2] = Math.Clamp(src[idx + 2], 0f, 1f);
                 }
             }
         }
         return result;
-    }
-
-    /// <summary>
-    /// 将值钳制到 [0.0, 1.0] 范围内。
-    /// </summary>
-    private static float Clamp01(float v)
-    {
-        if (v < 0) return 0;
-        if (v > 1) return 1;
-        return v;
     }
 }

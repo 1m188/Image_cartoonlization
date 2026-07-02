@@ -116,4 +116,108 @@ public class ImageDataTests
         Assert.Equal(1f, img.GetPixel(0, 0, 0));
         Assert.Equal(6f, img.GetPixel(0, 1, 2));
     }
+
+    [Fact]
+    public void Constructor_ZeroChannels_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(10, 10, 0));
+        Assert.Contains("通道数", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Constructor_NegativeChannels_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(10, 10, -1));
+        Assert.Contains("通道数", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Constructor_ZeroChannels_WithExternalArray_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(10, 10, 0, Array.Empty<float>()));
+    }
+
+    [Fact]
+    public void Constructor_ZeroWidth_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(0, 10, 3));
+        Assert.Contains("宽度", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Constructor_ZeroHeight_Throws()
+    {
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(10, 0, 3));
+        Assert.Contains("高度", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Constructor_NegativeWidth_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(-1, 10, 3));
+    }
+
+    [Fact]
+    public void Constructor_NegativeHeight_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new ImageData(10, -1, 3));
+    }
+
+    [Fact]
+    public void GetPixel_OutOfBounds_Y_Throws()
+    {
+        var img = new ImageData(3, 3, 3);
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            img.GetPixel(3, 0, 0));
+        Assert.Contains("越界", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GetPixel_OutOfBounds_X_Throws()
+    {
+        var img = new ImageData(3, 3, 3);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            img.GetPixel(0, 3, 0));
+    }
+
+    [Fact]
+    public void GetPixel_OutOfBounds_Channel_Throws()
+    {
+        var img = new ImageData(3, 3, 3);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            img.GetPixel(0, 0, 3));
+    }
+
+    [Fact]
+    public void SetPixel_OutOfBounds_Throws()
+    {
+        var img = new ImageData(3, 3, 3);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            img.SetPixel(3, 0, 0, 0.5f));
+    }
+
+    [Fact]
+    public void GetPixel_DefaultStruct_NullData_Throws()
+    {
+        var img = default(ImageData);
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            img.GetPixel(0, 0, 0));
+        Assert.Contains("未初始化", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SetPixel_DefaultStruct_NullData_Throws()
+    {
+        var img = default(ImageData);
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            img.SetPixel(0, 0, 0, 0.5f));
+        Assert.Contains("未初始化", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }
