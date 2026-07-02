@@ -1,0 +1,25 @@
+# 编译产物
+image_cartoonlization
+*.exe
+
+# 测试覆盖率
+*.out
+
+# 临时文件
+*.tmp
+*.bak
+
+# 测试输出图片
+cartoon.png
+cartoon.jpg
+silent_test.png
+*.test.png
+*.test.jpg
+
+# IDE
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+# Rust 构建产物
+/target/
+
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# 编辑器临时文件
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
+
+# Rust 备份文件
+**/*.rs.bk

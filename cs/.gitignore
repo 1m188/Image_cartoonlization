@@ -1,0 +1,38 @@
+# 构建产物
+**/bin/
+**/obj/
+
+# AOT 发布输出
+/nativeaot/
+
+# 用户特定文件
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# Rider
+.idea/
+
+# NuGet
+*.nupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/repositories.config
+
+# 测试结果
+**/TestResults/
+*.trx
+*.coverage
+
+# 临时文件
+*.swp
+*.swo
+*~
+*.tmp
+*.temp
+
+# macOS
+.DS_Store
