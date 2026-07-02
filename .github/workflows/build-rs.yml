@@ -1,0 +1,47 @@
+name: Build (Rust)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: image-cartoonlization-linux-amd64
+            binary_name: image-cartoonlization
+          - os: windows-latest
+            artifact_name: image-cartoonlization-windows-amd64
+            binary_name: image-cartoonlization.exe
+          - os: macos-latest
+            artifact_name: image-cartoonlization-darwin-arm64
+            binary_name: image-cartoonlization
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        working-directory: rs
+        run: cargo build --release
+
+      - name: Move binary
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            cp rs/target/release/image-cartoonlization.exe ${{ matrix.binary_name }}
+          else
+            cp rs/target/release/image-cartoonlization ${{ matrix.binary_name }}
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.binary_name }}
