@@ -253,6 +253,36 @@ mod tests {
     }
 
     #[test]
+    fn test_parallel_determinism() {
+        // 验证并行计算的可重复性：对同一输入多次滤波结果完全一致
+        let mut img = ImageData::new(32, 32, 3);
+        for y in 0..32 {
+            for x in 0..32 {
+                img.set(y, x, 0, (y * 32 + x) as f64 / 1024.0);
+                img.set(y, x, 1, (x * 32 + y) as f64 / 1024.0);
+                img.set(y, x, 2, 0.5);
+            }
+        }
+        let r1 = bilateral_filter(&img, 2, 5.0, 0.2);
+        let r2 = bilateral_filter(&img, 2, 5.0, 0.2);
+        for y in 0..32 {
+            for x in 0..32 {
+                for c in 0..3 {
+                    let delta = (r1.get(y, x, c) - r2.get(y, x, c)).abs();
+                    assert!(
+                        delta < 1e-12,
+                        "并行确定性失败 at ({},{},{}) delta={}",
+                        y,
+                        x,
+                        c,
+                        delta
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_sigma_zero_returns_clone() {
         let mut img = ImageData::new(2, 2, 3);
         img.set(0, 0, 0, 0.7);

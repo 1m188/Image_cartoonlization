@@ -209,8 +209,12 @@ mod tests {
         img.set(0, 0, 1, 0.0); // G=0
         img.set(0, 0, 2, 0.0); // B=0
         let lab = rgb_to_lab(&img);
+        let l = lab.get(0, 0, 0);
         let a = lab.get(0, 0, 1);
+        let b = lab.get(0, 0, 2);
+        assert!((l - 53.0).abs() < 1.0, "红色 L 应约为 53，实际 L={}", l);
         assert!(a > 0.0, "红色应有正 a* 值，实际 a*={}", a);
+        assert!(b > 0.0, "红色应有正 b* 值，实际 b*={}", b);
     }
 
     #[test]

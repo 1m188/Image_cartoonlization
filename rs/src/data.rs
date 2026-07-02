@@ -36,7 +36,12 @@ impl ImageData {
         debug_assert!(
             y < self.height && x < self.width && c < self.channels,
             "index out of bounds: ({},{},{}) for image {}x{}x{}",
-            y, x, c, self.width, self.height, self.channels
+            y,
+            x,
+            c,
+            self.width,
+            self.height,
+            self.channels
         );
         (y * self.width + x) * self.channels + c
     }

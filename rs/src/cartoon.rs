@@ -180,4 +180,19 @@ mod tests {
         assert!(names.contains(&"edge overlay"));
         assert!(names.contains(&"total"));
     }
+
+    #[test]
+    fn test_cartoonize_multi_iteration() {
+        let test_path = std::path::PathBuf::from("../test.jpg");
+        let img = io::load_image(&test_path).expect("加载 test.jpg");
+        let params = Params {
+            loop_num: 3,
+            ..Params::default()
+        };
+        let (_result, steps) = cartoonize(&img, &params).expect("卡通化");
+        let names: Vec<&str> = steps.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"bilateral #1"));
+        assert!(names.contains(&"bilateral #2"));
+        assert!(names.contains(&"bilateral #3"));
+    }
 }
