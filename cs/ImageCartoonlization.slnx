@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ImageCartoonlization.Tests/ImageCartoonlization.Tests.csproj" />
+  <Project Path="ImageCartoonlization/ImageCartoonlization.csproj" />
+</Solution>
