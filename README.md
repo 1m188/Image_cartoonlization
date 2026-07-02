@@ -8,3 +8,10 @@
     MatLab R2012a
     
 4. The files of bilateral filter, "bfilter2.m", "bfltColor.m", "bfltGray.m" are open source code written by other people.
+
+## 其他
+
+- [openspec/](./openspec/) 为项目移植的开发文档
+- [go/](./go/) 为 matlab 项目的 golang 移植
+- [rs/](./rs/) 为 matlab 项目的 rust 移植
+- [cs/](./cs/) 为 matlab 项目的 dotnet 移植
