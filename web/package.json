@@ -1,0 +1,19 @@
+{
+  "name": "image-cartoonlization-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Web 版图片卡通化工具（移植自项目根目录的 MATLAB 实现）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.3"
+  }
+}

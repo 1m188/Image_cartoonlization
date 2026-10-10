@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="在浏览器本地把照片变成卡通风格：饱和度增强 + Lab 空间双边滤波 + 边缘描边。图片不上传。" />
+    <meta name="theme-color" content="#0e1116" />
+    <title>图片卡通化 · 浏览器本地处理</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%A8%3C/text%3E%3C/svg%3E"
+    />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-logo">🎨</span>
+        <span class="brand-name">图片卡通化</span>
+        <span class="brand-tag">浏览器本地处理 · 图片不上传</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="stage-col">
+        <div class="stage" id="stage">
+          <div class="canvas-box" id="canvasBox" hidden>
+            <canvas id="beforeCanvas" aria-label="原图"></canvas>
+            <canvas id="afterCanvas" aria-label="卡通化结果"></canvas>
+            <div
+              class="divider"
+              id="divider"
+              role="slider"
+              tabindex="0"
+              aria-label="前后对比分割线位置"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="50"
+              hidden
+            >
+              <div class="divider-grip" aria-hidden="true">⇄</div>
+            </div>
+          </div>
+
+          <div class="empty" id="emptyState">
+            <div class="empty-icon">🖼️</div>
+            <p class="empty-title">拖拽图片到这里，或点击选择</p>
+            <p class="empty-hint">支持 JPG / PNG / WebP · 也可以直接 Ctrl+V 粘贴</p>
+            <div class="empty-actions">
+              <button class="btn primary" id="pickBtn" type="button">选择图片</button>
+              <button class="btn ghost" id="sampleBtn" type="button">试试示例图片</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-row" id="progressRow" hidden>
+          <div class="progress-track">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <span class="progress-text" id="progressText"></span>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <section class="panel-section">
+          <h2 class="panel-title">参数</h2>
+          <div id="controls"></div>
+          <button class="btn ghost small" id="resetBtn" type="button">恢复默认参数</button>
+        </section>
+
+        <section class="panel-section">
+          <h2 class="panel-title">导出</h2>
+          <div class="field-row">
+            <label for="exportScale">分辨率</label>
+            <select id="exportScale">
+              <option value="full" selected>原图</option>
+              <option value="4096">长边 4096 px</option>
+              <option value="2048">长边 2048 px</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <label for="exportFormat">格式</label>
+            <select id="exportFormat">
+              <option value="image/png" selected>PNG（无损）</option>
+              <option value="image/jpeg">JPEG（体积小）</option>
+            </select>
+          </div>
+          <button class="btn primary block" id="exportBtn" type="button" disabled>
+            处理并下载
+          </button>
+        </section>
+
+        <section class="panel-section">
+          <h2 class="panel-title">图片</h2>
+          <p class="image-info" id="imageInfo">未加载图片</p>
+          <button class="btn ghost block" id="replaceBtn" type="button" disabled>换一张图</button>
+        </section>
+      </aside>
+    </main>
+
+    <input type="file" id="fileInput" accept="image/*" hidden />
+    <div class="toast" id="toast" hidden></div>
+  </body>
+</html>
